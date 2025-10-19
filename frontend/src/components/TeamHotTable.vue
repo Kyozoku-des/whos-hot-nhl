@@ -1,20 +1,18 @@
 <template>
-  <div class="player-list">
+  <div class="team-list">
     <div v-if="loading" class="loading">Loading...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
-    <div v-else-if="players.length === 0" class="empty">No players found</div>
-    <div v-else class="players-grid">
+    <div v-else-if="teams.length === 0" class="empty">No hot teams</div>
+    <div v-else class="teams-grid">
       <div
-        v-for="player in players"
-        :key="player.playerId"
-        class="player-item"
-        @click="goToPlayer(player.playerId)"
+        v-for="team in teams"
+        :key="team.teamCode"
+        class="team-item"
+        @click="goToTeam(team.teamCode)"
       >
-        <span class="player-name">{{ player.firstName }} {{ player.lastName }}</span>
-        <span class="player-icons">
-          <img v-if="player.hot" src="../assets/flame.png" alt="Hot" class="status-icon" title="Hot streak (PPG > 1.5)" />
-          <img v-if="player.cold" src="../assets/snowflake.png" alt="Cold" class="status-icon" title="Cold streak (PPG < 0.2)" />
-          <img v-if="player.pointStreak" src="../assets/graph.png" alt="Point Streak" class="status-icon" title="5+ game point streak" />
+        <span class="team-name">{{ team.teamName }}</span>
+        <span class="team-icons">
+          <img src="../assets/flame.png" alt="Hot" class="status-icon" title="Hot team" />
         </span>
       </div>
     </div>
@@ -24,17 +22,18 @@
 <script setup>
 import { ref, inject, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { usePlayerStats } from '../composables/useApi'
+import { useTeamStats } from '../composables/useApi'
 
 const router = useRouter()
-const { loading, error, getTopScorers } = usePlayerStats()
-const players = ref([])
+const { loading, error, getStandings } = useTeamStats()
+const teams = ref([])
 const selectedSeason = inject('selectedSeason')
 
 const loadData = async () => {
-  const data = await getTopScorers(5, selectedSeason.value)
+  const data = await getStandings(selectedSeason.value)
   if (data) {
-    players.value = data
+    // Filter only hot teams
+    teams.value = data.filter(team => team.hot).slice(0, 5)
   }
 }
 
@@ -46,23 +45,23 @@ watch(selectedSeason, () => {
   loadData()
 })
 
-const goToPlayer = (playerId) => {
-  router.push(`/player/${playerId}`)
+const goToTeam = (teamCode) => {
+  router.push(`/team/${teamCode}`)
 }
 </script>
 
 <style scoped>
-.player-list {
+.team-list {
   width: 100%;
 }
 
-.players-grid {
+.teams-grid {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.player-item {
+.team-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -74,25 +73,25 @@ const goToPlayer = (playerId) => {
   transition: all 0.2s;
 }
 
-.player-item:hover {
+.team-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
   transform: translateX(5px);
 }
 
-.player-name {
+.team-name {
   color: var(--color-text-secondary);
   font-size: 1rem;
   font-weight: bold;
 }
 
-.player-icons {
+.team-icons {
   display: flex;
   gap: 0.5rem;
 }
 
 .status-icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
 }
 
