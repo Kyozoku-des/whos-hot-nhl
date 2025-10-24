@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { ref, inject, watch, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStats } from '../composables/useApi'
 import TeamLogo from './TeamLogo.vue'
@@ -36,20 +36,16 @@ import TeamLogo from './TeamLogo.vue'
 const router = useRouter()
 const { loading, error, getHottestPlayers } = usePlayerStats()
 const players = ref([])
-const selectedSeason = inject('selectedSeason')
 
 const loadData = async () => {
-  const data = await getHottestPlayers(5, 50, selectedSeason.value)
+  // Always fetch current season data (null = current season)
+  const data = await getHottestPlayers(5, 50, null)
   if (data) {
     players.value = data
   }
 }
 
 onMounted(() => {
-  loadData()
-})
-
-watch(selectedSeason, () => {
   loadData()
 })
 

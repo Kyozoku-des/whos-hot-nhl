@@ -11,7 +11,11 @@
         :class="{ 'hidden-item': index >= 5 }"
         @click="goToPlayer(player.playerId)"
       >
-        <span class="player-name">{{ player.firstName }} {{ player.lastName }}</span>
+        <div class="player-main">
+          <TeamLogo :teamCode="player.teamCode" size="small" />
+          <span class="player-name">{{ player.firstName }} {{ player.lastName }}</span>
+          <span class="team-code">{{ player.teamCode }}</span>
+        </div>
         <span class="player-stats">
           <span class="stat-item">G: {{ player.goals }}</span>
           <span class="stat-item">A: {{ player.assists }}</span>
@@ -24,7 +28,7 @@
 </template>
 
 <script setup>
-import { ref, inject, watch, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStats } from '../composables/useApi'
 import TeamLogo from './TeamLogo.vue'
@@ -32,20 +36,16 @@ import TeamLogo from './TeamLogo.vue'
 const router = useRouter()
 const { loading, error, getTopScorers } = usePlayerStats()
 const players = ref([])
-const selectedSeason = inject('selectedSeason')
 
 const loadData = async () => {
-  const data = await getTopScorers(50, selectedSeason.value)
+  // Always fetch current season data (null = current season)
+  const data = await getTopScorers(50, null)
   if (data) {
     players.value = data // Load top 50 players
   }
 }
 
 onMounted(() => {
-  loadData()
-})
-
-watch(selectedSeason, () => {
   loadData()
 })
 

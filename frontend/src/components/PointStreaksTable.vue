@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { ref, inject, watch, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStats } from '../composables/useApi'
 import TeamLogo from './TeamLogo.vue'
@@ -36,25 +36,16 @@ import TeamLogo from './TeamLogo.vue'
 const router = useRouter()
 const { loading, error, getPlayerStreaks } = usePlayerStats()
 const players = ref([])
-const selectedSeason = inject('selectedSeason')
 
 const loadData = async () => {
-  const data = await getPlayerStreaks(3, selectedSeason.value)
+  // Always fetch current season data (null = current season)
+  const data = await getPlayerStreaks(3, null)
   if (data) {
-<<<<<<< HEAD
     players.value = data // Load all players with streaks
-=======
-    // Show top 10 players with point streaks of 3+ games
-    players.value = data
->>>>>>> dev
   }
 }
 
 onMounted(() => {
-  loadData()
-})
-
-watch(selectedSeason, () => {
   loadData()
 })
 

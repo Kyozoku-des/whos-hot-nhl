@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, inject, watch, onMounted } from 'vue'
+import { ref, inject, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTeamStats } from '../composables/useApi'
 import TeamLogo from './TeamLogo.vue'
@@ -51,25 +51,17 @@ import TeamLogo from './TeamLogo.vue'
 const router = useRouter()
 const { loading, error, getStandings } = useTeamStats()
 const teams = ref([])
-const selectedSeason = inject('selectedSeason')
 const isExpanded = inject('isExpanded', ref(false))
 
 const loadData = async () => {
-  const data = await getStandings(selectedSeason.value)
+  // Always fetch current season data (null = current season)
+  const data = await getStandings(null)
   if (data) {
-<<<<<<< HEAD
-    teams.value = data // Load all teams (32 teams)
-=======
     teams.value = data // Show all teams
->>>>>>> dev
   }
 }
 
 onMounted(() => {
-  loadData()
-})
-
-watch(selectedSeason, () => {
   loadData()
 })
 

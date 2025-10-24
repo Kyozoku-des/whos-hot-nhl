@@ -8,42 +8,26 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 /**
- * Initializes data on application startup.
- * Syncs data for the current season by default.
+ * Initializes application on startup.
+ * Data synchronization is handled by scheduled jobs (see DataSyncScheduler).
+ * Previous season data should be populated using the PopulatePreviousSeasonScript.
  */
 @Component
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
 
-    private final DataIntegrationService dataIntegrationService;
-    private final StatisticsService statisticsService;
     private final NhlApiService nhlApiService;
 
-    public DataInitializer(
-            DataIntegrationService dataIntegrationService,
-            StatisticsService statisticsService,
-            NhlApiService nhlApiService) {
-        this.dataIntegrationService = dataIntegrationService;
-        this.statisticsService = statisticsService;
+    public DataInitializer(NhlApiService nhlApiService) {
         this.nhlApiService = nhlApiService;
     }
 
     @Override
     public void run(String... args) {
         String currentSeason = nhlApiService.getCurrentSeason();
-        log.info("=== Starting initial data synchronization for season {} ===", currentSeason);
-
-        try {
-            // Sync all data from NHL API for current season
-            dataIntegrationService.syncStandings(currentSeason);
-            dataIntegrationService.syncPlayerStats(currentSeason);
-
-            // Calculate hot ratings and streaks for current season
-            statisticsService.calculateHotRatings(currentSeason);
-
-            log.info("=== Initial data synchronization completed successfully for season {} ===", currentSeason);
-        } catch (Exception e) {
-            log.error("Error during initial data synchronization. Application will continue but may have incomplete data.", e);
-        }
+        log.info("=== Application started successfully ===");
+        log.info("Current NHL season: {}", currentSeason);
+        log.info("Data synchronization is handled by scheduled jobs");
+        log.info("To populate previous season data, run: PopulatePreviousSeasonScript");
     }
 }
