@@ -5,9 +5,10 @@
     <div v-else-if="teams.length === 0" class="empty">No hot teams</div>
     <div v-else class="teams-grid">
       <div
-        v-for="team in teams"
+        v-for="(team, index) in teams"
         :key="team.teamCode"
         class="team-item"
+        :class="{ 'hidden-item': index >= 5 }"
         @click="goToTeam(team.teamCode)"
       >
         <span class="team-name">{{ team.teamName }}</span>
@@ -33,7 +34,7 @@ const loadData = async () => {
   const data = await getStandings(selectedSeason.value)
   if (data) {
     // Filter only hot teams
-    teams.value = data.filter(team => team.hot).slice(0, 5)
+    teams.value = data.filter(team => team.hot)
   }
 }
 
@@ -71,6 +72,11 @@ const goToTeam = (teamCode) => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+/* Hide items beyond 5 when not expanded */
+:global(.expandable-card:not(.expanded)) .team-item.hidden-item {
+  display: none;
 }
 
 .team-item:hover {
