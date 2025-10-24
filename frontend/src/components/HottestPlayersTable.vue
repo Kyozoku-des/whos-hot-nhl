@@ -11,7 +11,11 @@
         :class="{ 'hidden-item': index >= 5 }"
         @click="goToPlayer(player.playerId)"
       >
-        <span class="player-name">{{ player.firstName }} {{ player.lastName }}</span>
+        <div class="player-main">
+          <TeamLogo :teamCode="player.teamCode" size="small" />
+          <span class="player-name">{{ player.firstName }} {{ player.lastName }}</span>
+          <span class="team-code">{{ player.teamCode }}</span>
+        </div>
         <span class="player-stats">
           <span class="stat-item">P: {{ player.points }}</span>
           <span class="stat-item">GP: {{ player.gamesPlayed }}</span>
@@ -27,6 +31,7 @@
 import { ref, inject, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStats } from '../composables/useApi'
+import TeamLogo from './TeamLogo.vue'
 
 const router = useRouter()
 const { loading, error, getHottestPlayers } = usePlayerStats()
@@ -36,12 +41,7 @@ const selectedSeason = inject('selectedSeason')
 const loadData = async () => {
   const data = await getHottestPlayers(5, 50, selectedSeason.value)
   if (data) {
-<<<<<<< HEAD
-    // Filter only hot players
-    players.value = data.filter(p => p.hot)
-=======
     players.value = data
->>>>>>> dev
   }
 }
 
@@ -94,11 +94,25 @@ const goToPlayer = (playerId) => {
   z-index: 10;
 }
 
+.player-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
 .player-name {
   color: var(--color-text-secondary);
   font-size: 1rem;
   font-weight: bold;
   flex: 1;
+}
+
+.team-code {
+  color: var(--color-text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.8;
 }
 
 .player-stats {

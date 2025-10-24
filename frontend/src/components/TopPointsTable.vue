@@ -11,23 +11,12 @@
         :class="{ 'hidden-item': index >= 5 }"
         @click="goToPlayer(player.playerId)"
       >
-<<<<<<< HEAD
-        <span class="player-info">
-          <span class="player-name">{{ player.firstName }} {{ player.lastName }}</span>
-          <span class="player-stats">G: {{ player.goals }} | A: {{ player.assists }} | P: {{ player.points }} | GP: {{ player.gamesPlayed }}</span>
-        </span>
-        <span class="player-icons">
-          <img v-if="player.hot" src="../assets/flame.png" alt="Hot" class="status-icon" title="Hot streak (PPG > 1.5)" />
-          <img v-if="player.cold" src="../assets/snowflake.png" alt="Cold" class="status-icon" title="Cold streak (PPG < 0.2)" />
-          <img v-if="player.pointStreak" src="../assets/graph.png" alt="Point Streak" class="status-icon" title="5+ game point streak" />
-=======
         <span class="player-name">{{ player.firstName }} {{ player.lastName }}</span>
         <span class="player-stats">
           <span class="stat-item">G: {{ player.goals }}</span>
           <span class="stat-item">A: {{ player.assists }}</span>
           <span class="stat-item">P: {{ player.points }}</span>
           <span class="stat-item">GP: {{ player.gamesPlayed }}</span>
->>>>>>> dev
         </span>
       </div>
     </div>
@@ -38,6 +27,7 @@
 import { ref, inject, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStats } from '../composables/useApi'
+import TeamLogo from './TeamLogo.vue'
 
 const router = useRouter()
 const { loading, error, getTopScorers } = usePlayerStats()
@@ -113,15 +103,14 @@ const goToPlayer = (playerId) => {
   flex: 1;
 }
 
-.player-stats {
-<<<<<<< HEAD
+.team-code {
   color: var(--color-text-primary);
   font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.8;
 }
 
-.player-icons {
-=======
->>>>>>> dev
+.player-stats {
   display: flex;
   gap: 1rem;
   align-items: center;
