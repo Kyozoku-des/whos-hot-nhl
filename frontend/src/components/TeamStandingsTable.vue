@@ -8,6 +8,7 @@
         v-for="(team, index) in teams"
         :key="team.teamCode"
         class="team-item"
+        :class="{ 'hidden-item': index >= 5 }"
         @click="goToTeam(team.teamCode)"
       >
         <div class="team-main">
@@ -56,7 +57,11 @@ const isExpanded = inject('isExpanded', ref(false))
 const loadData = async () => {
   const data = await getStandings(selectedSeason.value)
   if (data) {
+<<<<<<< HEAD
+    teams.value = data // Load all teams (32 teams)
+=======
     teams.value = data // Show all teams
+>>>>>>> dev
   }
 }
 
@@ -103,6 +108,11 @@ const formatNextGame = (team) => {
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+}
+
+/* Hide items beyond 5 when not expanded - uses :global to break scoped styles */
+:global(.expandable-card:not(.expanded)) .team-item.hidden-item {
+  display: none;
 }
 
 .team-item:hover {

@@ -5,9 +5,10 @@
     <div v-else-if="players.length === 0" class="empty">No point streaks</div>
     <div v-else class="players-grid">
       <div
-        v-for="player in players"
+        v-for="(player, index) in players"
         :key="player.playerId"
         class="player-item"
+        :class="{ 'hidden-item': index >= 5 }"
         @click="goToPlayer(player.playerId)"
       >
         <div class="player-main">
@@ -40,8 +41,12 @@ const selectedSeason = inject('selectedSeason')
 const loadData = async () => {
   const data = await getPlayerStreaks(3, selectedSeason.value)
   if (data) {
+<<<<<<< HEAD
+    players.value = data // Load all players with streaks
+=======
     // Show top 10 players with point streaks of 3+ games
     players.value = data
+>>>>>>> dev
   }
 }
 
@@ -81,6 +86,11 @@ const goToPlayer = (playerId) => {
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+}
+
+/* Hide items beyond 5 when not expanded */
+:global(.expandable-card:not(.expanded)) .player-item.hidden-item {
+  display: none;
 }
 
 .player-item:hover {

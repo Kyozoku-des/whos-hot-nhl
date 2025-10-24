@@ -5,9 +5,10 @@
     <div v-else-if="players.length === 0" class="empty">No hot players</div>
     <div v-else class="players-grid">
       <div
-        v-for="player in players"
+        v-for="(player, index) in players"
         :key="player.playerId"
         class="player-item"
+        :class="{ 'hidden-item': index >= 5 }"
         @click="goToPlayer(player.playerId)"
       >
         <div class="player-main">
@@ -38,9 +39,14 @@ const players = ref([])
 const selectedSeason = inject('selectedSeason')
 
 const loadData = async () => {
-  const data = await getHottestPlayers(5, 20, selectedSeason.value)
+  const data = await getHottestPlayers(5, 50, selectedSeason.value)
   if (data) {
+<<<<<<< HEAD
+    // Filter only hot players
+    players.value = data.filter(p => p.hot)
+=======
     players.value = data
+>>>>>>> dev
   }
 }
 
@@ -80,6 +86,11 @@ const goToPlayer = (playerId) => {
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+}
+
+/* Hide items beyond 5 when not expanded */
+:global(.expandable-card:not(.expanded)) .player-item.hidden-item {
+  display: none;
 }
 
 .player-item:hover {
