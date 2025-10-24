@@ -36,7 +36,12 @@ const selectedSeason = inject('selectedSeason')
 const loadData = async () => {
   const data = await getPlayerStreaks(3, selectedSeason.value)
   if (data) {
+<<<<<<< HEAD
     players.value = data // Load all players with streaks
+=======
+    // Show top 10 players with point streaks of 3+ games
+    players.value = data
+>>>>>>> dev
   }
 }
 
@@ -62,6 +67,7 @@ const goToPlayer = (playerId) => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  padding-right: 1.5rem;
 }
 
 .player-item {
@@ -74,6 +80,7 @@ const goToPlayer = (playerId) => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
 }
 
 /* Hide items beyond 5 when not expanded */
@@ -84,6 +91,7 @@ const goToPlayer = (playerId) => {
 .player-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
   transform: translateX(5px);
+  z-index: 10;
 }
 
 .player-name {

@@ -27,7 +27,7 @@
           <TeamWinStreaksTable />
         </ExpandableCard>
 
-        <ExpandableCard title="Whos hot">
+        <ExpandableCard title="Last 10 games">
           <TeamHotTable />
         </ExpandableCard>
       </div>
@@ -64,10 +64,11 @@ const handleSeasonChange = (season) => {
 
 .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 0rem 1rem;
   border-bottom: var(--color-border-thick) solid var(--color-border);
+  gap: 0;
+  background-color: var(--color-bg-card);
 }
 
 .title {
@@ -77,10 +78,17 @@ const handleSeasonChange = (season) => {
   letter-spacing: 3px;
   text-transform: uppercase;
   margin: 0;
+  padding-right: 3rem;
+  border-right: var(--color-border-thick) solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.header :deep(.season-selector) {
+  margin-left: auto;
 }
 
 .content-container {
-  padding: 1.5rem 2rem 2rem 2rem;
+  padding: 5rem 2rem 2rem 2rem;
 }
 
 .cards-grid {
@@ -90,7 +98,8 @@ const handleSeasonChange = (season) => {
   gap: 1.5rem;
   max-width: 1600px;
   margin: 0 auto;
-  height: calc(100vh - 180px);
+  height: calc(100vh - 200px);
+  min-height: 700px;
 }
 
 @media (max-width: 1200px) {

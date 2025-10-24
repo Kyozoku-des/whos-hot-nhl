@@ -101,8 +101,15 @@ public class DataIntegrationService {
                 team.setSeason(actualSeasonId); // Set season
                 team.setLastUpdated(timestamp);
 
+                // Sync team games from schedule to get game-by-game results
+                syncTeamGames(teamCode, actualSeasonId);
+
                 // Calculate streaks from team games
                 calculateTeamStreaks(team);
+
+                // Get schedule data to find next game
+                JsonNode scheduleData = nhlApiService.getTeamSchedule(teamCode, actualSeasonId);
+                setNextGame(team, scheduleData);
 
                 teamRepository.save(team);
                 log.debug("Saved team: {} for season: {}", team.getTeamCode(), actualSeasonId);
@@ -178,21 +185,40 @@ public class DataIntegrationService {
 
             log.info("Player statistics sync completed. Total players: {}", playersToSave.size());
 
-            // Now sync game logs for each player to enable streak calculations
-            log.info("Starting game log synchronization for {} players...", playersToSave.size());
+            // Fetch headshots and game logs for each player
+            log.info("Starting headshot and game log synchronization for {} players...", playersToSave.size());
             int gameLogsFetched = 0;
+            int headshotsFetched = 0;
             for (Player player : playersToSave) {
                 try {
+                    // Fetch headshot URL from player info
+                    JsonNode playerInfo = nhlApiService.getPlayerInfo(player.getPlayerId());
+                    if (playerInfo != null && playerInfo.has("headshot")) {
+                        String headshotUrl = playerInfo.path("headshot").asText();
+                        if (headshotUrl != null && !headshotUrl.isEmpty()) {
+                            player.setHeadshotUrl(headshotUrl);
+                            headshotsFetched++;
+                        }
+                    }
+
+                    // Fetch game logs
                     syncPlayerGameLogs(player.getPlayerId(), actualSeasonId);
                     gameLogsFetched++;
+
                     if (gameLogsFetched % 50 == 0) {
-                        log.info("Game logs fetched for {} / {} players", gameLogsFetched, playersToSave.size());
+                        log.info("Progress: {} / {} players (headshots: {}, game logs: {})",
+                                gameLogsFetched, playersToSave.size(), headshotsFetched, gameLogsFetched);
                     }
                 } catch (Exception e) {
-                    log.warn("Could not fetch game logs for player {}: {}", player.getPlayerId(), e.getMessage());
+                    log.warn("Could not fetch data for player {}: {}", player.getPlayerId(), e.getMessage());
                 }
             }
-            log.info("Game log synchronization completed. Fetched logs for {} players", gameLogsFetched);
+
+            // Save players again with headshots
+            playerRepository.saveAll(playersToSave);
+
+            log.info("Player data synchronization completed. Headshots: {} / {}, Game logs: {} / {}",
+                    headshotsFetched, playersToSave.size(), gameLogsFetched, playersToSave.size());
 
         } catch (Exception e) {
             log.error("Error syncing player stats", e);
@@ -340,25 +366,182 @@ public class DataIntegrationService {
     }
 
     /**
-     * Calculate win/loss streaks for a team based on recent games.
+     * Sync team games from schedule API for a specific team and season.
+     * @param teamCode Team code (e.g., "COL")
+     * @param seasonId Season ID (e.g., "20252026")
+     */
+    @Transactional
+    public void syncTeamGames(String teamCode, String seasonId) {
+        log.debug("Syncing team games for team: {} season: {}", teamCode, seasonId);
+
+        try {
+            JsonNode scheduleData = nhlApiService.getTeamSchedule(teamCode, seasonId);
+
+            if (scheduleData == null || !scheduleData.has("games")) {
+                log.debug("No schedule data for team: {} season: {}", teamCode, seasonId);
+                return;
+            }
+
+            JsonNode games = scheduleData.get("games");
+            List<TeamGame> teamGamesToSave = new ArrayList<>();
+
+            for (JsonNode gameNode : games) {
+                // Only process regular season games (gameType = 2)
+                int gameType = gameNode.path("gameType").asInt();
+                if (gameType != 2) {
+                    continue;
+                }
+
+                // Only process completed games
+                String gameState = gameNode.path("gameState").asText();
+                if (!"FINAL".equals(gameState) && !"OFF".equals(gameState)) {
+                    continue;
+                }
+
+                TeamGame teamGame = parseTeamGame(teamCode, gameNode);
+                if (teamGame != null) {
+                    teamGamesToSave.add(teamGame);
+                }
+            }
+
+            // Clear existing team games for this team and season, then save new ones
+            teamGameRepository.deleteAll(teamGameRepository.findLastNGamesByTeam(teamCode, 1000));
+            teamGameRepository.saveAll(teamGamesToSave);
+
+            log.debug("Team games synced for team: {} season: {}. Total games: {}",
+                    teamCode, seasonId, teamGamesToSave.size());
+        } catch (Exception e) {
+            log.warn("Could not sync team games for team: {} season: {}: {}",
+                    teamCode, seasonId, e.getMessage());
+        }
+    }
+
+    /**
+     * Parse a team game from schedule JSON.
+     */
+    private TeamGame parseTeamGame(String teamCode, JsonNode gameNode) {
+        TeamGame teamGame = new TeamGame();
+
+        teamGame.setGameId(gameNode.path("id").asLong());
+        teamGame.setTeamCode(teamCode);
+        teamGame.setGameDate(gameNode.path("gameDate").asText());
+        teamGame.setGameType("REGULAR");
+
+        // Determine if team is home or away
+        JsonNode homeTeam = gameNode.path("homeTeam");
+        JsonNode awayTeam = gameNode.path("awayTeam");
+
+        boolean isHomeTeam = homeTeam.path("abbrev").asText().equals(teamCode);
+        teamGame.setHomeGame(isHomeTeam);
+
+        if (isHomeTeam) {
+            teamGame.setOpponentTeamCode(awayTeam.path("abbrev").asText());
+            teamGame.setGoalsFor(homeTeam.path("score").asInt());
+            teamGame.setGoalsAgainst(awayTeam.path("score").asInt());
+        } else {
+            teamGame.setOpponentTeamCode(homeTeam.path("abbrev").asText());
+            teamGame.setGoalsFor(awayTeam.path("score").asInt());
+            teamGame.setGoalsAgainst(homeTeam.path("score").asInt());
+        }
+
+        // Determine if team won
+        boolean won = teamGame.getGoalsFor() > teamGame.getGoalsAgainst();
+        teamGame.setWon(won);
+
+        // Check for overtime/shootout loss
+        JsonNode periodDescriptor = gameNode.path("periodDescriptor");
+        String periodType = periodDescriptor.path("periodType").asText();
+        boolean isOvertimeOrShootout = "OT".equals(periodType) || "SO".equals(periodType);
+        boolean overtimeLoss = !won && isOvertimeOrShootout;
+        teamGame.setOvertimeLoss(overtimeLoss);
+
+        return teamGame;
+    }
+
+    /**
+     * Calculate win/loss streaks and win percentage for a team based on recent games.
      */
     private void calculateTeamStreaks(Team team) {
         List<TeamGame> recentGames = teamGameRepository.findLastNGamesByTeam(team.getTeamCode(), 10);
 
         int winStreak = 0;
         int lossStreak = 0;
+        int winsInLast10 = 0;
 
         for (TeamGame game : recentGames) {
+            // Count wins for last 10 games win percentage
             if (game.getWon()) {
-                winStreak++;
-                lossStreak = 0;
+                winsInLast10++;
+            }
+
+            // Calculate current streak (only for consecutive games from most recent)
+            if (game == recentGames.get(0)) {
+                // First game (most recent)
+                if (game.getWon()) {
+                    winStreak = 1;
+                } else {
+                    lossStreak = 1;
+                }
             } else {
-                lossStreak++;
-                winStreak = 0;
+                // Subsequent games - only count if streak continues
+                if (game.getWon() && winStreak > 0) {
+                    winStreak++;
+                } else if (!game.getWon() && lossStreak > 0) {
+                    lossStreak++;
+                } else {
+                    // Streak broken, stop counting
+                    break;
+                }
             }
         }
 
         team.setCurrentWinStreak(winStreak);
         team.setCurrentLossStreak(lossStreak);
+
+        // Calculate win percentage for last 10 games
+        if (!recentGames.isEmpty()) {
+            double winPercentage = (double) winsInLast10 / recentGames.size();
+            team.setLast10GamesWinPercentage(winPercentage);
+        } else {
+            team.setLast10GamesWinPercentage(null);
+        }
+    }
+
+    /**
+     * Find and set the next game information for a team.
+     */
+    private void setNextGame(Team team, JsonNode scheduleData) {
+        if (scheduleData == null || !scheduleData.has("games")) {
+            return;
+        }
+
+        JsonNode games = scheduleData.get("games");
+        for (JsonNode gameNode : games) {
+            // Only check regular season games
+            int gameType = gameNode.path("gameType").asInt();
+            if (gameType != 2) {
+                continue;
+            }
+
+            // Find first non-final game
+            String gameState = gameNode.path("gameState").asText();
+            if (!"FINAL".equals(gameState) && !"OFF".equals(gameState)) {
+                // This is the next game
+                JsonNode homeTeam = gameNode.path("homeTeam");
+                JsonNode awayTeam = gameNode.path("awayTeam");
+
+                boolean isHomeTeam = homeTeam.path("abbrev").asText().equals(team.getTeamCode());
+                team.setNextGameIsHome(isHomeTeam);
+                team.setNextGameDate(gameNode.path("gameDate").asText());
+
+                if (isHomeTeam) {
+                    team.setNextOpponentCode(awayTeam.path("abbrev").asText());
+                } else {
+                    team.setNextOpponentCode(homeTeam.path("abbrev").asText());
+                }
+
+                break; // Found the next game, stop searching
+            }
+        }
     }
 }
