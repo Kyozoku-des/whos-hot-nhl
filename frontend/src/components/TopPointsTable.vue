@@ -5,9 +5,10 @@
     <div v-else-if="players.length === 0" class="empty">No players found</div>
     <div v-else class="players-grid">
       <div
-        v-for="player in players"
+        v-for="(player, index) in players"
         :key="player.playerId"
         class="player-item"
+        :class="{ 'hidden-item': index >= 5 }"
         @click="goToPlayer(player.playerId)"
       >
         <div class="player-main">
@@ -15,6 +16,14 @@
           <span class="player-name">{{ player.firstName }} {{ player.lastName }}</span>
           <span class="team-code">{{ player.teamCode }}</span>
         </div>
+        <span class="player-info">
+          <span class="player-name">{{ player.firstName }} {{ player.lastName }}</span>
+          <span class="player-stats">G: {{ player.goals }} | A: {{ player.assists }} | P: {{ player.points }} | GP: {{ player.gamesPlayed }}</span>
+        </span>
+        <span class="player-icons">
+          <img v-if="player.hot" src="../assets/flame.png" alt="Hot" class="status-icon" title="Hot streak (PPG > 1.5)" />
+          <img v-if="player.cold" src="../assets/snowflake.png" alt="Cold" class="status-icon" title="Cold streak (PPG < 0.2)" />
+          <img v-if="player.pointStreak" src="../assets/graph.png" alt="Point Streak" class="status-icon" title="5+ game point streak" />
         <span class="player-stats">
           <span class="stat-item">G: {{ player.goals }}</span>
           <span class="stat-item">A: {{ player.assists }}</span>
@@ -38,9 +47,9 @@ const players = ref([])
 const selectedSeason = inject('selectedSeason')
 
 const loadData = async () => {
-  const data = await getTopScorers(5, selectedSeason.value)
+  const data = await getTopScorers(50, selectedSeason.value)
   if (data) {
-    players.value = data
+    players.value = data // Load top 50 players
   }
 }
 
@@ -82,6 +91,11 @@ const goToPlayer = (playerId) => {
   position: relative;
 }
 
+/* Hide items beyond 5 when not expanded */
+:global(.expandable-card:not(.expanded)) .player-item.hidden-item {
+  display: none;
+}
+
 .player-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
   transform: translateX(5px);
@@ -110,6 +124,11 @@ const goToPlayer = (playerId) => {
 }
 
 .player-stats {
+  color: var(--color-text-primary);
+  font-size: 0.85rem;
+}
+
+.player-icons {
   display: flex;
   gap: 1rem;
   align-items: center;

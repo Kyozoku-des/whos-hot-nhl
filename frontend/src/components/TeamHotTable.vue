@@ -8,6 +8,7 @@
         v-for="(team, index) in teams"
         :key="team.teamCode"
         class="team-item"
+        :class="{ 'hidden-item': index >= 5 }"
         @click="goToTeam(team.teamCode)"
       >
         <div class="team-main">
@@ -49,10 +50,15 @@ const isExpanded = inject('isExpanded', ref(false))
 const loadData = async () => {
   const data = await getStandings(selectedSeason.value)
   if (data) {
+<<<<<<< HEAD
+    // Filter only hot teams
+    teams.value = data.filter(team => team.hot)
+=======
     // Sort all teams by last 10 games win percentage (descending)
     teams.value = data
       .filter(team => team.last10GamesWinPercentage != null)
       .sort((a, b) => b.last10GamesWinPercentage - a.last10GamesWinPercentage)
+>>>>>>> dev
   }
 }
 
@@ -98,6 +104,11 @@ const goToTeam = (teamCode) => {
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+}
+
+/* Hide items beyond 5 when not expanded */
+:global(.expandable-card:not(.expanded)) .team-item.hidden-item {
+  display: none;
 }
 
 .team-item:hover {
