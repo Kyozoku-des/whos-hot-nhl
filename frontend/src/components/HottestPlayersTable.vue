@@ -41,12 +41,7 @@ const selectedSeason = inject('selectedSeason')
 const loadData = async () => {
   const data = await getHottestPlayers(5, 50, selectedSeason.value)
   if (data) {
-<<<<<<< HEAD
-    // Filter only hot players
-    players.value = data.filter(p => p.hot)
-=======
     players.value = data
->>>>>>> dev
   }
 }
 
