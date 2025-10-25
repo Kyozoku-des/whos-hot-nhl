@@ -142,7 +142,8 @@ cd /workspace/whos-hot-nhl && git pull
 ```
 
 **IMPORTANT**
-Never touch master branch.
+- Never touch master branch.
+- Changes intended for review should be committed on the `dev-review` branch before integration.
 
 ## VS Code Configuration
 
