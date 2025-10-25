@@ -527,6 +527,39 @@ Get game-by-game results for a specific team in a given season.
 
 ---
 
+### 11. Global Search
+
+#### GET `/api/search`
+
+Search across players and teams for the current season.
+
+**Query Parameters:**
+- `query` (required, string) - Search term used to match player names, team names, or codes
+- `limit` (optional, integer, default: 10) - Maximum number of combined results to return
+- `season` (optional, string) - Season ID (defaults to current season)
+
+**Response:**
+```json
+[
+  {
+    "type": "player",
+    "id": "8478402",
+    "label": "Connor McDavid",
+    "subLabel": "EDM"
+  },
+  {
+    "type": "team",
+    "id": "EDM",
+    "label": "Edmonton Oilers",
+    "subLabel": "Pacific"
+  }
+]
+```
+
+`type` will be either `player` or `team`. `subLabel` provides supporting context such as the team code for players or the division/conference for teams.
+
+---
+
 ## Development Workflow
 
 1. **Backend develops endpoints** following this contract
@@ -561,3 +594,4 @@ Get game-by-game results for a specific team in a given season.
 
 - **1.0** (2025-10-14): Initial API contract
 - **1.1** (2025-10-25): Added player and team game log endpoints for graph visualization (Issue #3)
+- **1.2** (2025-11-05): Added global search endpoint for players and teams (Issue #4)

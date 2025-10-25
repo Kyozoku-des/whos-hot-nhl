@@ -2,10 +2,10 @@
   <div class="team-list">
     <div v-if="loading" class="loading">Loading...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
-    <div v-else-if="teams.length === 0" class="empty">No hot teams</div>
+    <div v-else-if="filteredTeams.length === 0" class="empty">No hot teams</div>
     <div v-else class="teams-grid">
       <div
-        v-for="(team, index) in teams"
+        v-for="(team, index) in filteredTeams"
         :key="team.teamCode"
         class="team-item"
         @click="goToTeam(team.teamCode)"
@@ -35,10 +35,17 @@
 </template>
 
 <script setup>
-import { ref, inject, onMounted } from 'vue'
+import { ref, inject, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTeamStats } from '../composables/useApi'
 import TeamLogo from './TeamLogo.vue'
+
+const props = defineProps({
+  searchTerm: {
+    type: String,
+    default: ''
+  }
+})
 
 const router = useRouter()
 const { loading, error, getStandings } = useTeamStats()
@@ -51,7 +58,7 @@ const loadData = async () => {
     // Sort all teams by last 10 games win percentage (descending)
     teams.value = data
       .filter(team => team.last10GamesWinPercentage != null)
-      .sort((a, b) => b.last10GamesWinPercentage - a.last10GamesWinPercentage)
+      .sort((a, b) => (b.last10GamesWinPercentage ?? 0) - (a.last10GamesWinPercentage ?? 0))
   }
 }
 
@@ -62,6 +69,25 @@ const formatWinPercentage = (percentage) => {
 
 onMounted(() => {
   loadData()
+})
+
+const normalizedIncludes = (value, term) => {
+  if (value === null || value === undefined) {
+    return false
+  }
+  return value.toString().toLowerCase().includes(term)
+}
+
+const filteredTeams = computed(() => {
+  const term = props.searchTerm?.trim().toLowerCase()
+  if (!term) {
+    return teams.value
+  }
+
+  return teams.value.filter((team) => {
+    const searchable = [team.teamName, team.teamCode, team.franchiseName]
+    return searchable.some((value) => normalizedIncludes(value, term))
+  })
 })
 
 const goToTeam = (teamCode) => {

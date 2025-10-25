@@ -1,6 +1,7 @@
 package com.nhl.whoshotbackend.service;
 
 import com.nhl.whoshotbackend.dto.GameLogDTO;
+import com.nhl.whoshotbackend.dto.SearchResultDTO;
 import com.nhl.whoshotbackend.dto.TeamGameLogDTO;
 import com.nhl.whoshotbackend.entity.GameLog;
 import com.nhl.whoshotbackend.entity.Player;
@@ -11,9 +12,12 @@ import com.nhl.whoshotbackend.repository.PlayerRepository;
 import com.nhl.whoshotbackend.repository.TeamGameRepository;
 import com.nhl.whoshotbackend.repository.TeamRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -105,6 +109,48 @@ public class StatisticsService {
      */
     public List<Player> getTeamPlayers(String teamCode, String season) {
         return playerRepository.findByTeamCodeAndSeason(teamCode, season);
+    }
+
+    /**
+     * Search players and teams for a given season.
+     */
+    public List<SearchResultDTO> search(String season, String query, int limit) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        String normalizedQuery = query.trim();
+        int effectiveLimit = Math.max(1, limit);
+        Pageable pageable = PageRequest.of(0, effectiveLimit);
+
+        List<SearchResultDTO> results = new ArrayList<>();
+
+        playerRepository.searchPlayers(normalizedQuery, season, pageable)
+                .forEach(player -> {
+                    String label = player.getFullName() != null && !player.getFullName().isBlank()
+                            ? player.getFullName()
+                            : (player.getFirstName() + " " + player.getLastName()).trim();
+                    results.add(new SearchResultDTO(
+                            "player",
+                            String.valueOf(player.getPlayerId()),
+                            label,
+                            player.getTeamCode()
+                    ));
+                });
+
+        teamRepository.searchTeams(normalizedQuery, season, pageable)
+                .forEach(team -> results.add(new SearchResultDTO(
+                        "team",
+                        team.getTeamCode(),
+                        team.getTeamName(),
+                        team.getDivisionName() != null ? team.getDivisionName() : team.getConferenceName()
+                )));
+
+        if (results.size() <= effectiveLimit) {
+            return results;
+        }
+
+        return results.subList(0, effectiveLimit);
     }
 
     /**

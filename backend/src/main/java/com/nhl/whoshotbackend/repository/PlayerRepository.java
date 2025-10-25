@@ -1,8 +1,10 @@
 package com.nhl.whoshotbackend.repository;
 
 import com.nhl.whoshotbackend.entity.Player;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -35,4 +37,20 @@ public interface PlayerRepository extends JpaRepository<Player, Player.PlayerKey
      * Find players by team code for a specific season.
      */
     List<Player> findByTeamCodeAndSeason(String teamCode, String season);
+
+    /**
+     * Search players by name or team code for a season.
+     */
+    @Query("""
+            SELECT p FROM Player p
+            WHERE p.season = :season
+              AND (
+                    LOWER(p.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
+                 OR LOWER(p.firstName) LIKE LOWER(CONCAT('%', :query, '%'))
+                 OR LOWER(p.lastName) LIKE LOWER(CONCAT('%', :query, '%'))
+                 OR LOWER(p.teamCode) LIKE LOWER(CONCAT('%', :query, '%'))
+              )
+            ORDER BY LOWER(p.lastName), LOWER(p.firstName)
+            """)
+    List<Player> searchPlayers(@Param("query") String query, @Param("season") String season, Pageable pageable);
 }

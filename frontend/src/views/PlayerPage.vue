@@ -13,9 +13,51 @@
             />
             <div class="player-stats">
               <h1 class="player-name">{{ player?.firstName }} {{ player?.lastName }}</h1>
-              <p class="stat-line">Points: {{ player?.currentSeason?.points || 0 }}</p>
-              <p class="stat-line">Goals: {{ player?.currentSeason?.goals || 0 }}</p>
-              <p class="stat-line">Assists: {{ player?.currentSeason?.assists || 0 }}</p>
+              <p class="stat-line">Team: {{ player?.teamCode || 'N/A' }}</p>
+              <p class="stat-line">Points: {{ player?.points ?? 0 }}</p>
+              <p class="stat-line">Goals: {{ player?.goals ?? 0 }}</p>
+              <p class="stat-line">Assists: {{ player?.assists ?? 0 }}</p>
+              <p class="stat-line">Games Played: {{ player?.gamesPlayed ?? 0 }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">Season Snapshot</h2>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Points Per Game</span>
+              <span class="stat-value">{{ formatNumber(player?.pointsPerGame, 2) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Plus/Minus</span>
+              <span class="stat-value">{{ player?.plusMinus ?? '0' }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Power Play Goals</span>
+              <span class="stat-value">{{ player?.powerPlayGoals ?? '0' }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Shots</span>
+              <span class="stat-value">{{ player?.shots ?? '0' }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Shooting %</span>
+              <span class="stat-value">{{ formatNumber(player?.shootingPercentage, 1) }}%</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Current Point Streak</span>
+              <span class="stat-value">{{ player?.currentPointStreak ?? 0 }} GP</span>
+            </div>
+            <div class="stat-item" v-if="player?.hotRating != null">
+              <span class="stat-label">Hot Rating (PPG last 3)</span>
+              <span class="stat-value">{{ formatNumber(player?.hotRating, 2) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Hot Status</span>
+              <span class="stat-value" :class="{ positive: player?.hot, negative: player?.cold }">
+                {{ formatStreakStatus(player) }}
+              </span>
             </div>
           </div>
         </div>
@@ -35,19 +77,21 @@
             <thead>
               <tr>
                 <th>Date</th>
+                <th>Opponent</th>
+                <th>Location</th>
                 <th>Goals</th>
                 <th>Assists</th>
                 <th>Points</th>
-                <th>Time On Ice</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="game in gameLogs" :key="game.gameId">
-                <td>{{ formatDate(game.date) }}</td>
+              <tr v-for="game in gameLogs" :key="game.gameNumber">
+                <td>{{ formatDate(game.gameDate) }}</td>
+                <td>{{ game.opponentTeamCode }}</td>
+                <td>{{ game.homeGame ? 'vs' : '@' }}</td>
                 <td>{{ game.goals }}</td>
                 <td>{{ game.assists }}</td>
                 <td>{{ game.points }}</td>
-                <td>{{ game.timeOnIce }}</td>
               </tr>
             </tbody>
           </table>
@@ -76,6 +120,20 @@ const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+const formatNumber = (value, decimals = 1) => {
+  if (value == null || Number.isNaN(value)) {
+    return '0.0'
+  }
+  return Number(value).toFixed(decimals)
+}
+
+const formatStreakStatus = (playerData) => {
+  if (!playerData) return 'Neutral'
+  if (playerData.hot) return 'Hot'
+  if (playerData.cold) return 'Cold'
+  return 'Neutral'
 }
 
 // Calculate previous season ID
@@ -182,6 +240,42 @@ onMounted(async () => {
   font-weight: 700;
   margin-bottom: 1rem;
   text-align: center;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.stat-value.positive {
+  color: #4ade80;
+}
+
+.stat-value.negative {
+  color: #f87171;
 }
 
 .chart-placeholder {

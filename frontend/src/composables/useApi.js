@@ -115,3 +115,22 @@ export function useTeamStats() {
     getTeamGameLog
   }
 }
+
+export function useSearch() {
+  const { loading, error, fetchData } = useApi()
+
+  const search = async (query, limit = 10) => {
+    const params = new URLSearchParams({ query })
+    if (limit != null) {
+      params.append('limit', limit.toString())
+    }
+    const data = await fetchData(`/search?${params.toString()}`)
+    return data || []
+  }
+
+  return {
+    loading,
+    error,
+    search
+  }
+}

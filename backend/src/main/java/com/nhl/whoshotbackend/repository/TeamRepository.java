@@ -1,8 +1,10 @@
 package com.nhl.whoshotbackend.repository;
 
 import com.nhl.whoshotbackend.entity.Team;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -36,4 +38,19 @@ public interface TeamRepository extends JpaRepository<Team, Team.TeamKey> {
      */
     @Query("SELECT t FROM Team t WHERE t.season = ?1 AND t.currentLossStreak > 0 ORDER BY t.currentLossStreak DESC")
     List<Team> findTeamsWithLossStreaks(String season);
+
+    /**
+     * Search teams by name, franchise, or code for a season.
+     */
+    @Query("""
+            SELECT t FROM Team t
+            WHERE t.season = :season
+              AND (
+                    LOWER(t.teamName) LIKE LOWER(CONCAT('%', :query, '%'))
+                 OR LOWER(t.franchiseName) LIKE LOWER(CONCAT('%', :query, '%'))
+                 OR LOWER(t.teamCode) LIKE LOWER(CONCAT('%', :query, '%'))
+              )
+            ORDER BY LOWER(t.teamName)
+            """)
+    List<Team> searchTeams(@Param("query") String query, @Param("season") String season, Pageable pageable);
 }

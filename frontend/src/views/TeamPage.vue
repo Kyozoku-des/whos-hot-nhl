@@ -14,9 +14,52 @@
             />
             <div class="team-stats">
               <h1 class="team-name">{{ team?.teamName }}</h1>
-              <p class="stat-line">Wins: {{ team?.currentSeason?.wins || 0 }}</p>
-              <p class="stat-line">Losses: {{ team?.currentSeason?.losses || 0 }}</p>
-              <p class="stat-line">Points: {{ team?.currentSeason?.points || 0 }}</p>
+              <p class="stat-line">Conference: {{ team?.conferenceName || 'N/A' }}</p>
+              <p class="stat-line">Division: {{ team?.divisionName || 'N/A' }}</p>
+              <p class="stat-line">Record: {{ formatRecord(team) }}</p>
+              <p class="stat-line">Points: {{ team?.points ?? 0 }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">Season Snapshot</h2>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Games Played</span>
+              <span class="stat-value">{{ team?.gamesPlayed ?? 0 }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Goal Differential</span>
+              <span class="stat-value" :class="diffClass(team?.goalDifferential)">
+                {{ formatGoalDifferential(team?.goalDifferential) }}
+              </span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Point %</span>
+              <span class="stat-value">{{ formatPercentage(team?.pointPercentage) }}%</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Last 10 Win %</span>
+              <span class="stat-value">{{ formatPercentage(team?.last10GamesWinPercentage) }}%</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Current Win Streak</span>
+              <span class="stat-value">{{ team?.currentWinStreak ?? 0 }} GP</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Current Loss Streak</span>
+              <span class="stat-value">{{ team?.currentLossStreak ?? 0 }} GP</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Hot Status</span>
+              <span class="stat-value" :class="{ positive: team?.hot, negative: team?.cold }">
+                {{ formatStreakStatus(team) }}
+              </span>
+            </div>
+            <div class="stat-item" v-if="team?.nextOpponentCode">
+              <span class="stat-label">Next Game</span>
+              <span class="stat-value">{{ formatNextGame(team) }}</span>
             </div>
           </div>
         </div>
@@ -25,20 +68,20 @@
           <h2 class="section-title">Team Statistics</h2>
           <div class="stats-grid">
             <div class="stat-item">
-              <span class="stat-label">Goals Per Game:</span>
-              <span class="stat-value">{{ team?.currentSeason?.goalsPerGame?.toFixed(2) || '0.00' }}</span>
+              <span class="stat-label">Goals For</span>
+              <span class="stat-value">{{ team?.goalsFor ?? 0 }}</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">Goals Against Per Game:</span>
-              <span class="stat-value">{{ team?.currentSeason?.goalsAgainstPerGame?.toFixed(2) || '0.00' }}</span>
+              <span class="stat-label">Goals Against</span>
+              <span class="stat-value">{{ team?.goalsAgainst ?? 0 }}</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">Power Play %:</span>
-              <span class="stat-value">{{ team?.currentSeason?.powerPlayPercentage?.toFixed(1) || '0.0' }}%</span>
+              <span class="stat-label">Overtime Losses</span>
+              <span class="stat-value">{{ team?.overtimeLosses ?? 0 }}</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">Penalty Kill %:</span>
-              <span class="stat-value">{{ team?.currentSeason?.penaltyKillPercentage?.toFixed(1) || '0.0' }}%</span>
+              <span class="stat-label">Last Updated</span>
+              <span class="stat-value">{{ formatDate(team?.lastUpdated) }}</span>
             </div>
           </div>
         </div>
@@ -73,6 +116,53 @@ const { loading, error, getTeamDetails, getTeamGameLog } = useTeamStats()
 const team = ref(null)
 const teamGameLogs = ref([])
 const previousSeasonTeamGameLogs = ref([])
+
+const formatRecord = (teamData) => {
+  if (!teamData) return '0-0-0'
+  const wins = teamData.wins ?? 0
+  const losses = teamData.losses ?? 0
+  const ot = teamData.overtimeLosses ?? 0
+  return `${wins}-${losses}-${ot}`
+}
+
+const formatGoalDifferential = (diff) => {
+  if (diff == null) return '0'
+  return diff > 0 ? `+${diff}` : diff.toString()
+}
+
+const diffClass = (diff) => {
+  if (diff == null || diff === 0) return ''
+  return diff > 0 ? 'positive' : 'negative'
+}
+
+const formatPercentage = (value) => {
+  if (value == null) return '0.0'
+  return (Number(value) * 100).toFixed(1)
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) {
+    return dateString
+  }
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+const formatNextGame = (teamData) => {
+  if (!teamData || !teamData.nextOpponentCode) return 'TBD'
+  const location = teamData.nextGameIsHome ? 'vs' : '@'
+  const date = teamData.nextGameDate ? formatDate(teamData.nextGameDate) : ''
+  return `${location} ${teamData.nextOpponentCode}${date ? ` • ${date}` : ''}`
+}
+
+const formatStreakStatus = (teamData) => {
+  if (!teamData) return 'Neutral'
+  if (teamData.hot) return 'Hot'
+  if (teamData.cold) return 'Cold'
+  if (teamData.pointStreak) return 'Point Streak'
+  return 'Neutral'
+}
 
 // Calculate previous season ID
 const calculatePreviousSeason = () => {
@@ -162,6 +252,42 @@ onMounted(async () => {
   margin: 0.5rem 0;
 }
 
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.stat-value.positive {
+  color: #4ade80;
+}
+
+.stat-value.negative {
+  color: #f87171;
+}
+
 .section {
   background-color: var(--color-bg-card);
   border-radius: 8px;
@@ -176,33 +302,10 @@ onMounted(async () => {
   text-align: center;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 1rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-.stat-label {
-  font-weight: 600;
-}
-
-.stat-value {
-  font-weight: 700;
-  font-size: 1.2rem;
-}
-
 .placeholder-text {
   text-align: center;
   padding: 2rem;
-  color: rgba(0, 0, 0, 0.6);
+  color: var(--color-text-secondary);
 }
 
 .loading,

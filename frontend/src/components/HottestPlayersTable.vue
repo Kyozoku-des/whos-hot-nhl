@@ -2,10 +2,10 @@
   <div class="player-list">
     <div v-if="loading" class="loading">Loading...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
-    <div v-else-if="players.length === 0" class="empty">No hot players</div>
+    <div v-else-if="filteredPlayers.length === 0" class="empty">No hot players</div>
     <div v-else class="players-grid">
       <div
-        v-for="player in players"
+        v-for="player in filteredPlayers"
         :key="player.playerId"
         class="player-item"
         @click="goToPlayer(player.playerId)"
@@ -27,10 +27,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStats } from '../composables/useApi'
 import TeamLogo from './TeamLogo.vue'
+
+const props = defineProps({
+  searchTerm: {
+    type: String,
+    default: ''
+  }
+})
 
 const router = useRouter()
 const { loading, error, getHottestPlayers } = usePlayerStats()
@@ -45,6 +52,30 @@ const loadData = async () => {
 
 onMounted(() => {
   loadData()
+})
+
+const normalizedIncludes = (value, term) => {
+  if (value === null || value === undefined) {
+    return false
+  }
+  return value.toString().toLowerCase().includes(term)
+}
+
+const filteredPlayers = computed(() => {
+  const term = props.searchTerm?.trim().toLowerCase()
+  if (!term) {
+    return players.value
+  }
+
+  return players.value.filter((player) => {
+    const fullName = `${player.firstName ?? ''} ${player.lastName ?? ''}`.trim()
+    return (
+      normalizedIncludes(player.firstName, term) ||
+      normalizedIncludes(player.lastName, term) ||
+      normalizedIncludes(fullName, term) ||
+      normalizedIncludes(player.teamCode, term)
+    )
+  })
 })
 
 const goToPlayer = (playerId) => {
