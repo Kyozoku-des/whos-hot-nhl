@@ -52,6 +52,28 @@
         </div>
 
         <div class="section">
+          <h2 class="section-title">Game Log</h2>
+          <table class="game-log-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Opponent</th>
+                <th>Result</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="game in teamGameLogsReversed" :key="game.gameId">
+                <td>{{ formatDate(game.gameDate) }}</td>
+                <td>{{ game.opponentCode || game.opponent || '—' }}</td>
+                <td :class="game.win ? 'result-win' : 'result-loss'">{{ game.win ? 'W' : 'L' }}</td>
+                <td>{{ game.goalsFor ?? '—' }}–{{ game.goalsAgainst ?? '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
           <h2 class="section-title">Roster</h2>
           <p class="placeholder-text">Team roster would be displayed here</p>
         </div>
@@ -72,7 +94,14 @@ const { loading, error, getTeamDetails, getTeamGameLog } = useTeamStats()
 
 const team = ref(null)
 const teamGameLogs = ref([])
+const teamGameLogsReversed = ref([])
 const previousSeasonTeamGameLogs = ref([])
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
 
 // Calculate previous season ID
 const calculatePreviousSeason = () => {
@@ -104,6 +133,7 @@ onMounted(async () => {
   const gameLogData = await getTeamGameLog(teamId)
   if (gameLogData) {
     teamGameLogs.value = gameLogData
+    teamGameLogsReversed.value = [...gameLogData].reverse()
   }
 
   // Fetch previous season game log
@@ -199,10 +229,44 @@ onMounted(async () => {
   font-size: 1.2rem;
 }
 
+.game-log-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.game-log-table thead {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-secondary);
+}
+
+.game-log-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 700;
+}
+
+.game-log-table tbody tr {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.game-log-table td {
+  padding: 0.75rem;
+}
+
+.result-win {
+  color: #7dff7d;
+  font-weight: 700;
+}
+
+.result-loss {
+  color: #ff6b6b;
+  font-weight: 700;
+}
+
 .placeholder-text {
   text-align: center;
   padding: 2rem;
-  color: rgba(0, 0, 0, 0.6);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .loading,
@@ -217,13 +281,39 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
+
   .team-info-card {
     flex-direction: column;
     text-align: center;
+    padding: 1.5rem 1rem;
+  }
+
+  .team-name {
+    font-size: 1.5rem;
   }
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 1rem;
+  }
+
+  .section-title {
+    font-size: 1.2rem;
+  }
+
+  .game-log-table {
+    font-size: 0.85rem;
+  }
+
+  .game-log-table th,
+  .game-log-table td {
+    padding: 0.5rem 0.35rem;
   }
 }
 </style>

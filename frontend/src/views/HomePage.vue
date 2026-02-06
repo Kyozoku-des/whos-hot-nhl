@@ -1,6 +1,7 @@
 <template>
   <div class="home-page">
-    <div class="header">
+    <!-- Desktop header -->
+    <div class="header desktop-header">
       <h1 class="title">WHOS HOT NHL</h1>
       <div class="search-container">
         <SearchBar />
@@ -8,9 +9,19 @@
       <CurrentSeasonDisplay />
     </div>
 
-    <div class="content-container">
+    <!-- Mobile header: centered logo above search bar -->
+    <div class="header mobile-header">
+      <img src="../assets/nhl_logo.png" alt="NHL Logo" class="mobile-logo" />
+      <h1 class="title mobile-title">WHOS HOT NHL</h1>
+      <div class="search-container mobile-search">
+        <SearchBar />
+      </div>
+      <CurrentSeasonDisplay />
+    </div>
+
+    <!-- Desktop content: grid of cards -->
+    <div class="content-container desktop-content">
       <div class="cards-grid">
-        <!-- Favorites Card - Only show if user has favorites -->
         <ExpandableCard v-if="showFavorites" title="My Favorites" :defaultExpanded="true" class="favorites-card">
           <FavoritesTable />
         </ExpandableCard>
@@ -41,13 +52,52 @@
       </div>
     </div>
 
+    <!-- Mobile content: swipeable carousel showing one table at a time -->
+    <div class="content-container mobile-content">
+      <div
+        class="swipe-container"
+        @touchstart="onTouchStart"
+        @touchmove="onTouchMove"
+        @touchend="onTouchEnd"
+      >
+        <div
+          class="swipe-track"
+          :style="{ transform: `translateX(${swipeOffset}px)` }"
+        >
+          <div
+            v-for="(card, index) in mobileCards"
+            :key="card.key"
+            class="swipe-slide"
+            :class="{ active: index === activeSlide }"
+          >
+            <ExpandableCard :title="card.title" :class="{ 'favorites-card': card.key === 'favorites' }">
+              <component :is="card.component" />
+            </ExpandableCard>
+          </div>
+        </div>
+      </div>
+
+      <!-- Swipe navigation dots -->
+      <div class="swipe-nav">
+        <button
+          v-for="(card, index) in mobileCards"
+          :key="'dot-' + card.key"
+          class="swipe-dot"
+          :class="{ active: index === activeSlide }"
+          @click="goToSlide(index)"
+          :aria-label="`Go to ${card.title}`"
+        ></button>
+      </div>
+      <div class="swipe-label">{{ mobileCards[activeSlide]?.title }}</div>
+    </div>
+
     <!-- Cookie Consent Banner -->
     <CookieConsent />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import ExpandableCard from '../components/ExpandableCard.vue'
 import TopPointsTable from '../components/TopPointsTable.vue'
 import PointStreaksTable from '../components/PointStreaksTable.vue'
@@ -66,9 +116,81 @@ const { initializeFavorites, favoritesCount } = useFavorites()
 // Show favorites card only if user has favorites
 const showFavorites = computed(() => favoritesCount.value > 0)
 
+// Mobile carousel state
+const activeSlide = ref(0)
+const touchStartX = ref(0)
+const touchCurrentX = ref(0)
+const isSwiping = ref(false)
+const slideWidth = ref(0)
+
+// Build list of cards for mobile carousel
+const mobileCards = computed(() => {
+  const cards = []
+  if (showFavorites.value) {
+    cards.push({ key: 'favorites', title: 'My Favorites', component: FavoritesTable })
+  }
+  cards.push(
+    { key: 'standings', title: 'Player standings', component: TopPointsTable },
+    { key: 'streaks', title: 'Point streaks', component: PointStreaksTable },
+    { key: 'hot-players', title: 'Last 10 games', component: HottestPlayersTable },
+    { key: 'team-standings', title: 'Team standings', component: TeamStandingsTable },
+    { key: 'win-streaks', title: 'Win streaks', component: TeamWinStreaksTable },
+    { key: 'team-hot', title: 'Last 10 games (Teams)', component: TeamHotTable }
+  )
+  return cards
+})
+
+// Computed swipe offset based on active slide + drag delta
+const swipeOffset = computed(() => {
+  const base = -(activeSlide.value * slideWidth.value)
+  if (isSwiping.value) {
+    return base + (touchCurrentX.value - touchStartX.value)
+  }
+  return base
+})
+
+const onTouchStart = (e) => {
+  touchStartX.value = e.touches[0].clientX
+  touchCurrentX.value = e.touches[0].clientX
+  isSwiping.value = true
+}
+
+const onTouchMove = (e) => {
+  if (!isSwiping.value) return
+  touchCurrentX.value = e.touches[0].clientX
+}
+
+const onTouchEnd = () => {
+  if (!isSwiping.value) return
+  const delta = touchCurrentX.value - touchStartX.value
+  const threshold = slideWidth.value * 0.25
+
+  if (delta < -threshold && activeSlide.value < mobileCards.value.length - 1) {
+    activeSlide.value++
+  } else if (delta > threshold && activeSlide.value > 0) {
+    activeSlide.value--
+  }
+
+  isSwiping.value = false
+}
+
+const goToSlide = (index) => {
+  activeSlide.value = index
+}
+
+const updateSlideWidth = () => {
+  slideWidth.value = window.innerWidth
+}
+
 // Initialize favorites on mount
 onMounted(() => {
   initializeFavorites()
+  updateSlideWidth()
+  window.addEventListener('resize', updateSlideWidth)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateSlideWidth)
 })
 </script>
 
@@ -79,13 +201,19 @@ onMounted(() => {
   background-color: var(--color-bg-primary);
 }
 
-.header {
+/* Desktop header */
+.desktop-header {
   display: flex;
   align-items: center;
   padding: 0rem 1rem;
   border-bottom: var(--color-border-thick) solid var(--color-border);
   gap: 2rem;
   background-color: var(--color-bg-card);
+}
+
+/* Mobile header - hidden by default */
+.mobile-header {
+  display: none;
 }
 
 .title {
@@ -109,8 +237,14 @@ onMounted(() => {
   margin-left: auto;
 }
 
-.content-container {
+/* Desktop content */
+.desktop-content {
   padding: 5rem 2rem 2rem 2rem;
+}
+
+/* Mobile content - hidden by default */
+.mobile-content {
+  display: none;
 }
 
 .favorites-card {
@@ -128,6 +262,78 @@ onMounted(() => {
   min-height: 700px;
 }
 
+/* Mobile logo */
+.mobile-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.mobile-title {
+  font-size: 1.6rem;
+  border-right: none;
+  padding-right: 0;
+}
+
+/* Swipe carousel */
+.swipe-container {
+  overflow: hidden;
+  width: 100%;
+  touch-action: pan-y;
+}
+
+.swipe-track {
+  display: flex;
+  transition: transform 0.3s ease;
+  will-change: transform;
+}
+
+.swipe-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  padding: 0 1rem;
+  box-sizing: border-box;
+  min-height: 60vh;
+}
+
+.swipe-slide :deep(.expandable-card) {
+  height: 100%;
+  min-height: 55vh;
+}
+
+/* Navigation dots */
+.swipe-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 0 0.5rem;
+}
+
+.swipe-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background-color: transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.swipe-dot.active {
+  background-color: var(--color-text-secondary);
+  border-color: var(--color-text-secondary);
+}
+
+.swipe-label {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding-bottom: 1rem;
+}
+
 @media (max-width: 1200px) {
   .cards-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -135,7 +341,7 @@ onMounted(() => {
 }
 
 @media (max-width: 1024px) {
-  .header {
+  .desktop-header {
     flex-wrap: wrap;
   }
 
@@ -147,30 +353,34 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .header {
+  /* Switch to mobile header */
+  .desktop-header {
+    display: none;
+  }
+
+  .mobile-header {
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.75rem;
     padding: 1rem 1.5rem;
+    border-bottom: var(--color-border-thick) solid var(--color-border);
+    background-color: var(--color-bg-card);
   }
 
-  .title {
-    font-size: 1.8rem;
-    border-right: none;
-    padding-right: 0;
-  }
-
-  .search-container {
+  .mobile-search {
     width: 100%;
+    max-width: 100%;
   }
 
-  .content-container {
-    padding: 1.5rem;
+  /* Switch to mobile content */
+  .desktop-content {
+    display: none;
   }
 
-  .cards-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+  .mobile-content {
+    display: block;
+    padding-top: 1.5rem;
   }
 }
 </style>
