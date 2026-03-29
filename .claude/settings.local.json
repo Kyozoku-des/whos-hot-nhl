@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mvn clean package:*)"
+      "Bash(mvn clean package:*)",
+      "Bash(mvn clean:*)",
+      "Bash(mvn help:effective-pom)",
+      "Bash(mvn test:*)",
+      "Bash(./mvnw test:*)",
+      "Bash(ls \"C:\\\\Users\\\\owt020\\\\Other projects\\\\whos-hot-nhl\\\\backend\"/mvnw*)",
+      "Bash(./mvnw compile:*)",
+      "Bash(ls \"C:/Users/owt020/Other projects/whos-hot-nhl/\"*.* \"C:/Users/owt020/Other projects/whos-hot-nhl/\"mvn*)",
+      "Bash(ls \"C:/Users/owt020/Other projects/whos-hot-nhl/backend/\"*.xml)",
+      "Bash(ls \"C:/Users/owt020/Other projects/whos-hot-nhl/backend/mvnw\"*)",
+      "Bash(command -v mvn)",
+      "Bash(mvn compile:*)"
     ],
     "deny": [],
     "ask": []
