@@ -1,7 +1,9 @@
-package com.whoshot.nhl.api.config;
+package com.whoshot.nhl.datajob.config;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.mock.env.MockEnvironment;
@@ -31,11 +33,10 @@ class EnvironmentProfilesTest {
         assertEquals("local-user", environment.getProperty("spring.datasource.username"));
         assertEquals("from-process", environment.getProperty("spring.datasource.password"));
         assertEquals("jdbc:postgresql://localhost:15432/local", environment.getProperty("spring.datasource.url"));
-        assertEquals("custom-logs/api.log", environment.getProperty("logging.file.name"));
+        assertEquals("custom-logs/data-job.log", environment.getProperty("logging.file.name"));
         assertEquals("10MB", environment.getProperty("logging.logback.rollingpolicy.max-file-size"));
         assertEquals("14", environment.getProperty("logging.logback.rollingpolicy.max-history"));
         assertEquals("200MB", environment.getProperty("logging.logback.rollingpolicy.total-size-cap"));
-        assertEquals("18080", environment.getProperty("server.port"));
     }
 
     @Test
@@ -43,7 +44,7 @@ class EnvironmentProfilesTest {
         var environment = environment("local", temporaryDirectory.resolve("missing.env"));
         ConfigDataEnvironmentPostProcessor.applyTo(environment);
         assertEquals("whoshot", environment.getProperty("spring.datasource.username"));
-        assertEquals("./logs/api.log", environment.getProperty("logging.file.name"));
+        assertEquals("./logs/data-job.log", environment.getProperty("logging.file.name"));
     }
 
     @Test
@@ -51,7 +52,7 @@ class EnvironmentProfilesTest {
         var environment = environment("", temporaryDirectory.resolve("missing.env"));
         ConfigDataEnvironmentPostProcessor.applyTo(environment);
         assertArrayEquals(new String[] {"local"}, environment.getDefaultProfiles());
-        assertEquals("./logs/api.log", environment.getProperty("logging.file.name"));
+        assertEquals("./logs/data-job.log", environment.getProperty("logging.file.name"));
     }
 
     @Test
@@ -77,19 +78,15 @@ class EnvironmentProfilesTest {
         assertEquals("prod-password", environment.getProperty("spring.datasource.password"));
     }
 
-    @Test
-    void mavenTestDefaultIgnoresLocalEnvAndFileLogging() throws Exception {
-        Path envFile = temporaryDirectory.resolve(".env");
-        Files.writeString(envFile, "DB_PASSWORD=must-not-load\n");
-        assertEquals("test", System.getProperty("spring.profiles.default"));
-        var environment = environment("", envFile)
-                .withProperty("spring.profiles.default", System.getProperty("spring.profiles.default"));
+    @ParameterizedTest
+    @ValueSource(strings = {"local,backfill", "local,initial-load", "prod,backfill", "prod,initial-load"})
+    void jobModesComposeWithEnvironmentProfiles(String profiles) {
+        var environment = environment(profiles, temporaryDirectory.resolve("missing.env"));
         ConfigDataEnvironmentPostProcessor.applyTo(environment);
-
-        assertArrayEquals(new String[] {"test"}, environment.getDefaultProfiles());
-        assertNull(environment.getProperty("spring.config.import"));
-        assertNull(environment.getProperty("logging.file.name"));
-        assertEquals("whoshot_local", environment.getProperty("spring.datasource.password"));
+        assertArrayEquals(profiles.split(","), environment.getActiveProfiles());
+        assertEquals("none", environment.getProperty("spring.main.web-application-type"));
+        assertEquals(profiles.startsWith("local") ? "./logs/data-job.log" : null,
+                environment.getProperty("logging.file.name"));
     }
 
     private MockEnvironment environment(String profiles, Path envFile) {
