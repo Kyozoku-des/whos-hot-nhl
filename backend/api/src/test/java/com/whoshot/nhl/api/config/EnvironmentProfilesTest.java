@@ -68,6 +68,8 @@ class EnvironmentProfilesTest {
         assertNull(environment.getProperty("logging.file.name"));
         assertEquals("classpath:logback-console.xml", environment.getProperty("logging.config"));
         assertEquals("false", environment.getProperty("spring.jpa.show-sql"));
+        assertEquals("false", environment.getProperty("springdoc.api-docs.enabled"));
+        assertEquals("false", environment.getProperty("springdoc.swagger-ui.enabled"));
 
         environment.getPropertySources().addFirst(new SystemEnvironmentPropertySource(
                 "test-process-environment", Map.of("DB_URL", "jdbc:postgresql://prod/nhl",

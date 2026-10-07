@@ -1,0 +1,47 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - unattended-upgrades
+
+users:
+  - name: deploy
+    shell: /bin/bash
+    groups: [docker]
+    sudo: false
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+write_files:
+  - path: /etc/docker/daemon.json
+    permissions: "0644"
+    content: |
+      {"log-driver": "json-file", "log-opts": {"max-size": "10m", "max-file": "3"}}
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    permissions: "0644"
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+  - path: /opt/whos-hot/.env
+    permissions: "0600"
+    owner: root:root
+    content: |
+      APP_PROFILE=prod
+      DB_PASSWORD=${db_password}
+      SITE_ADDRESS=${domain}
+      GHCR_OWNER=${ghcr_owner}
+      IMAGE_TAG=latest
+
+runcmd:
+  - fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  - curl -fsSL https://get.docker.com | sh
+  - systemctl restart docker
+  - mkdir -p /opt/whos-hot/deploy
+  - curl -fsSL ${repo_raw_url}/compose.yaml -o /opt/whos-hot/compose.yaml
+  - curl -fsSL ${repo_raw_url}/deploy/Caddyfile -o /opt/whos-hot/deploy/Caddyfile
+  - chown deploy:deploy /opt/whos-hot/compose.yaml /opt/whos-hot/deploy /opt/whos-hot/deploy/Caddyfile
+  - chown deploy:deploy /opt/whos-hot/.env
+  # Stack starts on the first CI deploy: images only exist after the first master build.
