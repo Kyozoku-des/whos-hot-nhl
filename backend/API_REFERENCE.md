@@ -95,7 +95,7 @@ Players ordered by recent form: `pointsPerLastNGames` descending. Players withou
 
 ### GET /api/players/{playerId}
 
-Player detail. Same fields as the player row above.
+Player detail. Same fields as the player row above, plus the season pace fields below.
 
 - **Path params**: `playerId` (int) - NHL player ID
 - **Query params**: `season` (optional)
@@ -241,3 +241,13 @@ Team game results for a season, ordered by `gameDate` descending.
 | 404 | Unknown player or team for the season | `{ "error": "Player not found", "playerId": ... }` / `{ "error": "Team not found", "teamCode": "..." }` |
 | 404 | Unknown path | `{ "error": "Not found", "path": "..." }` |
 | 500 | Internal server error | `{ "error": "Internal server error" }` |
+
+## Detail season pace fields
+
+`GET /api/players/{playerId}` and `GET /api/teams/{teamCode}` also return:
+
+- `seasonId`: the resolved season, so clients can request matching game logs.
+- `seasonGames`: 84 from 2026-27 onward; 82 for standard seasons since 1995-96, 48 for 2012-13, and 56 for 2020-21. Unknown, cancelled, and uneven 2019-20 seasons return `null`.
+- `projectedPoints`: `points / gamesPlayed * seasonGames`, without intermediate rounding. Returns `null` when totals are unavailable, games played is zero, the full game count has been reached, or season length is unknown.
+
+Example: 6 points after 5 games in 2026-27 returns `seasonGames: 84` and `projectedPoints: 100.8`. Player pace assumes full participation; it does not predict missed games. The frontend extends a dashed line from the latest actual cumulative total to this endpoint in cumulative mode. It hides the line if the detail totals and game logs disagree.

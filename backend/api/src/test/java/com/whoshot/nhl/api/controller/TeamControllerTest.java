@@ -74,7 +74,7 @@ class TeamControllerTest {
                 "Eastern", "Atlantic",
                 3, 0,
                 0.8, 2.2,
-                List.of(player)
+                List.of(player), season, 82, 106.6
         );
 
         when(teamService.getTeamDetail("TOR", season)).thenReturn(detail);
@@ -83,6 +83,9 @@ class TeamControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.teamCode").value("TOR"))
                 .andExpect(jsonPath("$.teamName").value("Toronto Maple Leafs"))
+                .andExpect(jsonPath("$.seasonId").value(season))
+                .andExpect(jsonPath("$.seasonGames").value(82))
+                .andExpect(jsonPath("$.projectedPoints").value(106.6))
                 .andExpect(jsonPath("$.wins").value(30))
                 .andExpect(jsonPath("$.roster", hasSize(1)))
                 .andExpect(jsonPath("$.roster[0].playerId").value(34))

@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * DTO representing detailed team information including roster.
- * Contains all Team entity fields except season and lastUpdated, plus a roster list.
+ * Includes season metadata, point pace, and a roster list.
  */
 public record TeamDetailDto(
         String teamCode,
@@ -25,5 +25,8 @@ public record TeamDetailDto(
         Integer currentLossStreak,
         Double last10GamesPointPercentage,
         Double last10GamesPPG,
-        List<RosterPlayerDto> roster
+        List<RosterPlayerDto> roster,
+        String seasonId,
+        Integer seasonGames,
+        Double projectedPoints
 ) {}

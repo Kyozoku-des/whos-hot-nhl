@@ -11,6 +11,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { projectionDataset } from '../composables/pointProjection'
 import GraphModeToggle from './GraphModeToggle.vue'
 import { useGraphMode, toCumulative } from '../composables/useGraphMode'
 import { Line } from 'vue-chartjs'
@@ -36,6 +37,10 @@ ChartJS.register(
 )
 
 const props = defineProps({
+  seasonDetails: {
+    type: Object,
+    default: () => ({})
+  },
   currentSeasonData: {
     type: Array,
     default: () => []
@@ -79,14 +84,14 @@ const hasData = computed(() => {
 
 // Combine both seasons into one chart with two datasets
 const combinedChartData = computed(() => {
-  // Determine max game count (82 for full season, or longest available)
+  // Use the season length supplied by the backend, or available logs.
   const maxGames = Math.max(
-    82,
+    props.seasonDetails.seasonGames || 0,
     props.currentSeasonData?.length || 0,
     props.previousSeasonData?.length || 0
   )
 
-  // Create labels (1-82)
+  // Include future games for the projection.
   const labels = Array.from({ length: maxGames }, (_, i) => i + 1)
 
   const datasets = []
@@ -134,6 +139,12 @@ const combinedChartData = computed(() => {
     })
   }
 
+  const projected = projectionDataset(
+    props.currentSeasonData.map(game => game.points || 0),
+    props.seasonDetails, isCumulative.value, true
+  )
+  if (projected) datasets.push(projected)
+
   return {
     labels,
     datasets
@@ -177,6 +188,9 @@ const chartOptions = computed(() => ({
           return `Game ${context[0].label}`
         },
         label: (context) => {
+          if (context.dataset.projected) {
+            return `Projected total: ${context.parsed.y.toFixed(1)} points`
+          }
           const gameIndex = context.dataIndex
           const dataset = context.dataset
           const points = dataset.points?.[gameIndex] ?? 0

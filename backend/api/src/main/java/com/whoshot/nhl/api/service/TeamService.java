@@ -125,6 +125,7 @@ public class TeamService {
     }
 
     private TeamDetailDto toDetailDto(Team team, List<RosterPlayerDto> roster) {
+        Integer seasonGames = SeasonPace.seasonGames(team.getSeasonId());
         return new TeamDetailDto(
                 team.getTeamCode(),
                 team.getTeamName(),
@@ -144,7 +145,10 @@ public class TeamService {
                 team.getCurrentLossStreak(),
                 team.getLast10GamesPointPercentage(),
                 team.getLast10GamesPPG(),
-                roster
+                roster,
+                team.getSeasonId(),
+                seasonGames,
+                SeasonPace.projectedPoints(team.getPoints(), team.getGamesPlayed(), seasonGames)
         );
     }
 

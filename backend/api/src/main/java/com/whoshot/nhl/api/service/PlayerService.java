@@ -105,6 +105,7 @@ public class PlayerService {
     }
 
     private PlayerDetailDto toDetailDto(Player player) {
+        Integer seasonGames = SeasonPace.seasonGames(player.getId().seasonId());
         return new PlayerDetailDto(
                 player.getId().playerId(),
                 player.getFirstName(),
@@ -122,7 +123,10 @@ public class PlayerService {
                 player.getPlusMinus(),
                 player.getCurrentPointStreak(),
                 player.getCurrentPointlessStreak(),
-                player.getPointsPerLastNGames()
+                player.getPointsPerLastNGames(),
+                player.getId().seasonId(),
+                seasonGames,
+                SeasonPace.projectedPoints(player.getPoints(), player.getGamesPlayed(), seasonGames)
         );
     }
 

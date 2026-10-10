@@ -50,6 +50,7 @@
             :current-season-data="teamGameLogs"
             :previous-season-data="previousSeasonTeamGameLogs"
             :previous-season="previousSeason"
+            :season-details="team || {}"
           />
         </div>
 
@@ -79,43 +80,32 @@ const teamGameLogs = ref([])
 const previousSeasonTeamGameLogs = ref([])
 const previousSeason = ref('')
 
-// Calculate previous season ID
-const calculatePreviousSeason = () => {
-  const currentYear = new Date().getFullYear()
-  const currentMonth = new Date().getMonth() + 1
-
-  let seasonStartYear
-  if (currentMonth >= 10) {
-    seasonStartYear = currentYear
-  } else {
-    seasonStartYear = currentYear - 1
-  }
-
-  const previousStartYear = seasonStartYear - 1
-  const previousEndYear = seasonStartYear
-
-  return `${previousStartYear}${previousEndYear}`
-}
-
 onMounted(async () => {
-  previousSeason.value = calculatePreviousSeason()
   const teamId = route.params.id
 
   const teamData = await getTeamDetails(teamId)
   if (teamData) {
     team.value = teamData
+    const startYear = Number(teamData.seasonId.slice(0, 4))
+    previousSeason.value = `${startYear - 1}${startYear}`
   }
 
   // Fetch current season game log
-  const gameLogData = await getTeamGameLog(teamId)
+  const gameLogData = team.value
+    ? await getTeamGameLog(teamId, team.value.seasonId)
+    : []
   if (gameLogData) {
-    teamGameLogs.value = gameLogData
+    teamGameLogs.value = [...gameLogData].sort((a, b) =>
+      a.gameDate.localeCompare(b.gameDate) || a.gameId - b.gameId)
   }
 
   // Fetch previous season game log
-  const previousSeasonData = await getTeamGameLog(teamId, previousSeason.value)
+  const previousSeasonData = previousSeason.value
+    ? await getTeamGameLog(teamId, previousSeason.value)
+    : []
   if (previousSeasonData) {
-    previousSeasonTeamGameLogs.value = previousSeasonData
+    previousSeasonTeamGameLogs.value = [...previousSeasonData].sort((a, b) =>
+      a.gameDate.localeCompare(b.gameDate) || a.gameId - b.gameId)
   }
 })
 </script>

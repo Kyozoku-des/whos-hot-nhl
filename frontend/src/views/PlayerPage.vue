@@ -27,6 +27,7 @@
             :current-season-data="gameLogs"
             :previous-season-data="previousSeasonGameLogs"
             :previous-season="previousSeason"
+            :season-details="player || {}"
           />
         </div>
 
@@ -86,37 +87,22 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-// Calculate previous season ID
-const calculatePreviousSeason = () => {
-  const currentYear = new Date().getFullYear()
-  const currentMonth = new Date().getMonth() + 1
-
-  let seasonStartYear
-  if (currentMonth >= 10) {
-    seasonStartYear = currentYear
-  } else {
-    seasonStartYear = currentYear - 1
-  }
-
-  const previousStartYear = seasonStartYear - 1
-  const previousEndYear = seasonStartYear
-
-  return `${previousStartYear}${previousEndYear}`
-}
-
 onMounted(async () => {
-  previousSeason.value = calculatePreviousSeason()
   const playerId = route.params.id
 
   const playerData = await getPlayerDetails(playerId)
   if (playerData) {
     player.value = playerData
+    const startYear = Number(playerData.seasonId.slice(0, 4))
+    previousSeason.value = `${startYear - 1}${startYear}`
   }
 
   loadingGameLog.value = true
 
   // Fetch current season game log
-  const gameLogData = await getPlayerGameLog(playerId)
+  const gameLogData = player.value
+    ? await getPlayerGameLog(playerId, player.value.seasonId)
+    : []
   if (gameLogData) {
     gameLogs.value = gameLogData
     // Reverse for table display (show most recent games first)
@@ -124,7 +110,9 @@ onMounted(async () => {
   }
 
   // Fetch previous season game log
-  const previousSeasonData = await getPlayerGameLog(playerId, previousSeason.value)
+  const previousSeasonData = previousSeason.value
+    ? await getPlayerGameLog(playerId, previousSeason.value)
+    : []
   if (previousSeasonData) {
     previousSeasonGameLogs.value = previousSeasonData
   }
