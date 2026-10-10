@@ -206,7 +206,7 @@ Team detail: the team row above plus the season's roster.
 
 ### GET /api/teams/{teamCode}/game-log
 
-Team game results for a season, ordered by `gameDate` descending.
+Team game results for a season, ordered by `gameNumber` ascending, matching the player graph contract.
 
 - **Path params**: `teamCode` (string) - Three-letter team code
 - **Query params**: `season` (optional)
@@ -248,6 +248,6 @@ Team game results for a season, ordered by `gameDate` descending.
 
 - `seasonId`: the resolved season, so clients can request matching game logs.
 - `seasonGames`: 84 from 2026-27 onward; 82 for standard seasons since 1995-96, 48 for 2012-13, and 56 for 2020-21. Unknown, cancelled, and uneven 2019-20 seasons return `null`.
-- `projectedPoints`: `points / gamesPlayed * seasonGames`, without intermediate rounding. Returns `null` when totals are unavailable, games played is zero, the full game count has been reached, or season length is unknown.
+- `projectedPoints`: `points / gamesPlayed * seasonGames`, without intermediate rounding. Returns `null` when totals are unavailable, games played is zero, the full game count has been reached, or season length is unknown. Projections are available only for the active season while the ingested team standings show at least one team with regular-season games remaining; historical or league-completed seasons return `null` even for a player who missed games.
 
 Example: 6 points after 5 games in 2026-27 returns `seasonGames: 84` and `projectedPoints: 100.8`. Player pace assumes full participation; it does not predict missed games. The frontend extends a dashed line from the latest actual cumulative total to this endpoint in cumulative mode. It hides the line if the detail totals and game logs disagree.

@@ -64,6 +64,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { previousSeasonId } from '../composables/seasonDetails'
 import { useRoute } from 'vue-router'
 import { usePlayerStats } from '../composables/useApi'
 import PlayerAvatar from '../components/PlayerAvatar.vue'
@@ -93,8 +94,7 @@ onMounted(async () => {
   const playerData = await getPlayerDetails(playerId)
   if (playerData) {
     player.value = playerData
-    const startYear = Number(playerData.seasonId.slice(0, 4))
-    previousSeason.value = `${startYear - 1}${startYear}`
+    previousSeason.value = previousSeasonId(playerData.seasonId)
   }
 
   loadingGameLog.value = true

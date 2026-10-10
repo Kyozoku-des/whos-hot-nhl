@@ -27,6 +27,7 @@ public class TeamService {
     private final SeasonResolver seasonResolver;
     private final TeamGameRepository teamGameRepository;
     private final PlayerRepository playerRepository;
+    private final SeasonPace seasonPace;
 
     /**
      * Get all teams for a season ordered by points descending.
@@ -92,11 +93,11 @@ public class TeamService {
      *
      * @param teamCode team abbreviation code
      * @param season season identifier, or null to auto-detect active season
-     * @return game log entries ordered by game date descending
+     * @return game log entries ordered by game number ascending
      */
     public List<TeamGameLogDto> getTeamGameLog(String teamCode, String season) {
         String resolved = seasonResolver.resolve(season);
-        return teamGameRepository.findByTeamCodeAndSeasonIdOrderByGameDateDesc(teamCode, resolved).stream()
+        return teamGameRepository.findByTeamCodeAndSeasonIdOrderByGameNumberAsc(teamCode, resolved).stream()
                 .map(this::toGameLogDto)
                 .toList();
     }
@@ -148,7 +149,7 @@ public class TeamService {
                 roster,
                 team.getSeasonId(),
                 seasonGames,
-                SeasonPace.projectedPoints(team.getPoints(), team.getGamesPlayed(), seasonGames)
+                seasonPace.projectedPoints(team.getSeasonId(), team.getPoints(), team.getGamesPlayed(), seasonGames)
         );
     }
 

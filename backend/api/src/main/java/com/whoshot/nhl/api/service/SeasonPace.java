@@ -1,8 +1,26 @@
 package com.whoshot.nhl.api.service;
 
+import com.whoshot.nhl.domain.repository.TeamRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
 /** Season length and full-participation point pace, calculated from unrounded totals. */
+@Component
+@RequiredArgsConstructor
 final class SeasonPace {
-    private SeasonPace() {}
+    private final TeamRepository teamRepository;
+    private final SeasonResolver seasonResolver;
+
+    Double projectedPoints(String seasonId, Integer points, Integer gamesPlayed, Integer seasonGames) {
+        Double projection = projectedPoints(points, gamesPlayed, seasonGames);
+        // The active season can remain selected through playoffs/offseason. Check league
+        // completion too: a player may finish the season with fewer games than their team.
+        if (projection == null || seasonId == null || !seasonId.equals(seasonResolver.resolve(null))
+                || !teamRepository.existsBySeasonIdAndGamesPlayedLessThan(seasonId, seasonGames)) {
+            return null;
+        }
+        return projection;
+    }
 
     static Integer seasonGames(String seasonId) {
         if (seasonId == null || !seasonId.matches("\\d{8}")) return null;

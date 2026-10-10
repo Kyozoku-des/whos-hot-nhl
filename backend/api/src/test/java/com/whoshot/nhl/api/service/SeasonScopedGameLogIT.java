@@ -3,6 +3,10 @@ package com.whoshot.nhl.api.service;
 import com.whoshot.nhl.api.dto.PlayerGameLogDto;
 import com.whoshot.nhl.api.dto.TeamGameLogDto;
 import com.whoshot.nhl.domain.entity.GameLog;
+import com.whoshot.nhl.domain.entity.Team;
+import com.whoshot.nhl.domain.entity.CurrentSeason;
+import com.whoshot.nhl.domain.repository.TeamRepository;
+import com.whoshot.nhl.domain.repository.CurrentSeasonRepository;
 import com.whoshot.nhl.domain.entity.TeamGame;
 import com.whoshot.nhl.domain.repository.GameLogRepository;
 import com.whoshot.nhl.domain.repository.TeamGameRepository;
@@ -36,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Testcontainers
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({PlayerService.class, TeamService.class, SeasonResolver.class})
+@Import({PlayerService.class, TeamService.class, SeasonResolver.class, SeasonPace.class})
 class SeasonScopedGameLogIT {
 
     private static final String PAST_SEASON = "20242025";
@@ -57,6 +61,12 @@ class SeasonScopedGameLogIT {
     private GameLogRepository gameLogRepository;
     @Autowired
     private TeamGameRepository teamGameRepository;
+    @Autowired
+    private TeamRepository teamRepository;
+    @Autowired
+    private CurrentSeasonRepository currentSeasonRepository;
+    @Autowired
+    private SeasonPace seasonPace;
 
     @BeforeEach
     void seed() {
@@ -70,8 +80,8 @@ class SeasonScopedGameLogIT {
 
         teamGameRepository.saveAll(List.of(
                 teamGame("COL", 2024020002L, "2024-10-10", PAST_SEASON, 2),
-                teamGame("COL", 2024020001L, "2024-10-08", PAST_SEASON, 1),
-                teamGame("COL", 2024020003L, "2024-10-12", PAST_SEASON, 3),
+                teamGame("COL", 2024020003L, "2024-10-13", PAST_SEASON, 1),
+                teamGame("COL", 2024020001L, "2024-10-12", PAST_SEASON, 3),
                 teamGame("COL", 2025020001L, "2025-10-07", CURRENT_SEASON, 1)));
     }
 
@@ -85,10 +95,13 @@ class SeasonScopedGameLogIT {
     }
 
     @Test
-    void teamGameLog_forBackfilledSeason_isDescendingByGameDate_andScopedToThatSeason() {
+    void teamGameLog_usesAscendingGameNumbersEvenWhenDatesAndIdsDisagree() {
         List<TeamGameLogDto> log = teamService.getTeamGameLog("COL", PAST_SEASON);
 
-        assertEquals(List.of("2024-10-12", "2024-10-10", "2024-10-08"),
+        assertEquals(List.of(1, 2, 3), log.stream().map(TeamGameLogDto::gameNumber).toList());
+        assertEquals(List.of(2024020003L, 2024020002L, 2024020001L),
+                log.stream().map(TeamGameLogDto::gameId).toList());
+        assertEquals(List.of("2024-10-13", "2024-10-10", "2024-10-12"),
                 log.stream().map(TeamGameLogDto::gameDate).toList());
     }
 
@@ -101,6 +114,25 @@ class SeasonScopedGameLogIT {
     void seasonThatWasNeverLoaded_returnsEmptyList() {
         assertTrue(playerService.getPlayerGameLog(VETERAN_ID, "20102011").isEmpty());
         assertTrue(teamService.getTeamGameLog("COL", "20102011").isEmpty());
+    }
+
+    @Test
+    void projectionStopsWhenTheLastTeamCompletesTheRegularSeason() {
+        var active = new CurrentSeason();
+        active.setSeasonId(CURRENT_SEASON);
+        active.setIsActive(true);
+        currentSeasonRepository.saveAndFlush(active);
+        var team = new Team();
+        team.setTeamCode("COL");
+        team.setTeamName("Colorado Avalanche");
+        team.setSeasonId(CURRENT_SEASON);
+        team.setGamesPlayed(81);
+        teamRepository.saveAndFlush(team);
+
+        assertEquals(82.0, seasonPace.projectedPoints(CURRENT_SEASON, 70, 70, 82));
+        team.setGamesPlayed(82);
+        teamRepository.saveAndFlush(team);
+        org.junit.jupiter.api.Assertions.assertNull(seasonPace.projectedPoints(CURRENT_SEASON, 70, 70, 82));
     }
 
     private static GameLog gameLog(long playerId, long gameId, String date, String season, int number) {

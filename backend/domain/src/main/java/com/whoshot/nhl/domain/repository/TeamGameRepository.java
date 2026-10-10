@@ -12,6 +12,8 @@ public interface TeamGameRepository extends JpaRepository<TeamGame, Long> {
 
     List<TeamGame> findByTeamCodeAndSeasonIdOrderByGameDateDesc(String teamCode, String seasonId);
 
+    List<TeamGame> findByTeamCodeAndSeasonIdOrderByGameNumberAsc(String teamCode, String seasonId);
+
     /**
      * All team games for a season, across every team. Used to resolve a player's {@code gameWon}
      * flag during a backfill without re-fetching each team's schedule.

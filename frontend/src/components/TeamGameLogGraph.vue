@@ -11,7 +11,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { projectionDataset } from '../composables/pointProjection'
+import { projectionDataset, includeProjectionTooltip } from '../composables/pointProjection'
 import GraphModeToggle from './GraphModeToggle.vue'
 import { useGraphMode, toCumulative } from '../composables/useGraphMode'
 import { Line } from 'vue-chartjs'
@@ -60,11 +60,11 @@ const props = defineProps({
 const previousSeasonStart = computed(() => Number(props.previousSeason.slice(0, 4)))
 
 const previousSeasonLabel = computed(() =>
-  `${previousSeasonStart.value}-${previousSeasonStart.value + 1}`
+  props.previousSeason ? `${previousSeasonStart.value}-${previousSeasonStart.value + 1}` : 'Previous season'
 )
 
 const currentSeasonLabel = computed(() =>
-  `${previousSeasonStart.value + 1}-${previousSeasonStart.value + 2}`
+  props.previousSeason ? `${previousSeasonStart.value + 1}-${previousSeasonStart.value + 2}` : 'Current season'
 )
 
 const { graphMode } = useGraphMode()
@@ -119,6 +119,7 @@ const combinedChartData = computed(() => {
   const labels = Array.from({ length: maxGames }, (_, i) => i + 1)
 
   const datasets = []
+  const currentData = calculatePointsData(props.currentSeasonData)
 
   // Add previous season data (if available)
   if (props.previousSeasonData && props.previousSeasonData.length > 0) {
@@ -140,7 +141,6 @@ const combinedChartData = computed(() => {
 
   // Add current season data (if available)
   if (props.currentSeasonData && props.currentSeasonData.length > 0) {
-    const currentData = calculatePointsData(props.currentSeasonData)
     datasets.push({
       label: `${currentSeasonLabel.value} (Current)`,
       data: isCumulative.value ? currentData.cumulativePoints : currentData.pointsPerGame,
@@ -156,7 +156,7 @@ const combinedChartData = computed(() => {
   }
 
   const projected = projectionDataset(
-    calculatePointsData(props.currentSeasonData).pointsPerGame,
+    currentData.pointsPerGame,
     props.seasonDetails, isCumulative.value
   )
   if (projected) datasets.push(projected)
@@ -189,6 +189,7 @@ const chartOptions = computed(() => ({
       }
     },
     tooltip: {
+      filter: includeProjectionTooltip,
       mode: 'index',
       intersect: false,
       titleFont: {

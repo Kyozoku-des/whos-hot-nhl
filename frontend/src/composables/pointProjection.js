@@ -19,6 +19,7 @@ export function projectionDataset(points, details, cumulative, player = false) {
       : `On pace for ${projectedPoints.toFixed(1)} points`,
     data,
     projected: true,
+    startIndex: games - 1,
     borderColor: '#38BDF8',
     borderDash: [8, 5],
     borderWidth: 2,
@@ -26,4 +27,9 @@ export function projectionDataset(points, details, cumulative, player = false) {
     pointRadius: 0,
     pointHoverRadius: 4
   }
+}
+
+// The anchor belongs to the actual series; show projection tooltips only for future games.
+export function includeProjectionTooltip(context) {
+  return !context.dataset.projected || context.dataIndex !== context.dataset.startIndex
 }

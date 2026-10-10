@@ -15,6 +15,9 @@ import java.util.Optional;
  */
 public interface TeamRepository extends JpaRepository<Team, Team.TeamKey> {
 
+    /** Whether the ingested standings still contain a team with regular-season games remaining. */
+    boolean existsBySeasonIdAndGamesPlayedLessThan(String seasonId, Integer seasonGames);
+
     /**
      * Find a team by its three-letter team code and season.
      *

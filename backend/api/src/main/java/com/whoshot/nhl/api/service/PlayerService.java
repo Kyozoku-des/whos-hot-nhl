@@ -22,6 +22,7 @@ public class PlayerService {
     private final PlayerRepository playerRepository;
     private final GameLogRepository gameLogRepository;
     private final SeasonResolver seasonResolver;
+    private final SeasonPace seasonPace;
 
     /**
      * Get all players for a season ordered by points descending.
@@ -126,7 +127,7 @@ public class PlayerService {
                 player.getPointsPerLastNGames(),
                 player.getId().seasonId(),
                 seasonGames,
-                SeasonPace.projectedPoints(player.getPoints(), player.getGamesPlayed(), seasonGames)
+                seasonPace.projectedPoints(player.getId().seasonId(), player.getPoints(), player.getGamesPlayed(), seasonGames)
         );
     }
 

@@ -58,7 +58,7 @@ public class TeamController {
 
     @GetMapping("/{teamCode}/game-log")
     @Operation(summary = "Get team game log",
-               description = "Returns the team's game log for a season ordered by date descending")
+               description = "Returns the team's game log for a season ordered by game number ascending")
     public ResponseEntity<List<TeamGameLogDto>> getTeamGameLog(
             @PathVariable String teamCode,
             @RequestParam(required = false) String season) {

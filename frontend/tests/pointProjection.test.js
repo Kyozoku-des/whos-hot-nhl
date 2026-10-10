@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { projectionDataset } from '../src/composables/pointProjection.js'
+import { projectionDataset, includeProjectionTooltip } from '../src/composables/pointProjection.js'
 
 const points = [2, 0, 1, 2, 1]
 const details = { points: 6, gamesPlayed: 5, seasonGames: 84, projectedPoints: 100.8 }
@@ -41,4 +41,12 @@ test('renders a zero-point pace and a shorter historical season', () => {
   const dataset = projectionDataset(points, { ...details, seasonGames: 82, projectedPoints: 98.4 }, true)
   assert.equal(dataset.data.length, 82)
   assert.equal(dataset.data[81], 98.4)
+})
+
+test('omits the duplicate projection tooltip at the last actual game', () => {
+  const dataset = projectionDataset(points, details, true)
+  assert.equal(includeProjectionTooltip({ dataset, dataIndex: 4 }), false)
+  assert.equal(includeProjectionTooltip({ dataset, dataIndex: 5 }), true)
+  assert.equal(includeProjectionTooltip({ dataset, dataIndex: 83 }), true)
+  assert.equal(includeProjectionTooltip({ dataset: { projected: false }, dataIndex: 4 }), true)
 })

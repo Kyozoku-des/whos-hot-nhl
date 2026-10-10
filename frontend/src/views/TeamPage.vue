@@ -65,6 +65,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { previousSeasonId } from '../composables/seasonDetails'
 import { useRoute } from 'vue-router'
 import { useTeamStats } from '../composables/useApi'
 import TeamLogo from '../components/TeamLogo.vue'
@@ -86,8 +87,7 @@ onMounted(async () => {
   const teamData = await getTeamDetails(teamId)
   if (teamData) {
     team.value = teamData
-    const startYear = Number(teamData.seasonId.slice(0, 4))
-    previousSeason.value = `${startYear - 1}${startYear}`
+    previousSeason.value = previousSeasonId(teamData.seasonId)
   }
 
   // Fetch current season game log
@@ -95,8 +95,7 @@ onMounted(async () => {
     ? await getTeamGameLog(teamId, team.value.seasonId)
     : []
   if (gameLogData) {
-    teamGameLogs.value = [...gameLogData].sort((a, b) =>
-      a.gameDate.localeCompare(b.gameDate) || a.gameId - b.gameId)
+    teamGameLogs.value = gameLogData
   }
 
   // Fetch previous season game log
@@ -104,8 +103,7 @@ onMounted(async () => {
     ? await getTeamGameLog(teamId, previousSeason.value)
     : []
   if (previousSeasonData) {
-    previousSeasonTeamGameLogs.value = [...previousSeasonData].sort((a, b) =>
-      a.gameDate.localeCompare(b.gameDate) || a.gameId - b.gameId)
+    previousSeasonTeamGameLogs.value = previousSeasonData
   }
 })
 </script>
